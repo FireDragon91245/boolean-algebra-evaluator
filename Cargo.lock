@@ -3,14 +3,6 @@
 version = 3
 
 [[package]]
-name = "LogicExpressionParser"
-version = "0.1.0"
-dependencies = [
- "clap",
- "tabled",
-]
-
-[[package]]
 name = "anstream"
 version = "0.6.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -58,6 +50,14 @@ dependencies = [
  "anstyle",
  "once_cell",
  "windows-sys",
+]
+
+[[package]]
+name = "booleval"
+version = "0.1.0"
+dependencies = [
+ "clap",
+ "tabled",
 ]
 
 [[package]]
