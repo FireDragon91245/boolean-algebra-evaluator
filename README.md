@@ -47,8 +47,9 @@ Just a simple evaluator/interpretter based on an AST
 > Prints the help
 #### booleval [expression]
 > Evaluates a pure bool expression, no identifiers, for example "true^false" 
-#### booleval -T [expression]
-> Evaluates all posible combinations of expression and prints it as a truth table
+#### booleval -T [expression] {-t -f}
+> Evaluates all posible combinations of expression and prints it as a truth table  
+> You can optionally add a `-f` XOR `-t` flags to filter for `-f=false`, `-t=true` results only
 ```bash
 > .\booleval -T "a^b"
 ╭───────┬───────┬────────╮
