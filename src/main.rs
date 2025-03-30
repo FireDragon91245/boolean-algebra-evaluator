@@ -1,6 +1,9 @@
 use crate::evaluator::EvaluatorPassResult;
 use clap::{Parser, Subcommand};
 use itertools::Itertools;
+use std::cmp::PartialEq;
+use std::io;
+use std::io::Write;
 use tabled::builder::Builder;
 use tabled::settings::Style;
 
@@ -32,6 +35,7 @@ struct Cli {
     command: Commands,
 }
 
+#[derive(PartialEq)]
 enum AstPrintMode {
     Default,
     Pretty,
@@ -118,6 +122,24 @@ enum Commands {
     },
 }
 
+fn show_prompt(prompt: &str, options: &Vec<&str>) -> String {
+    print!("{}", prompt);
+    let _ = io::stdout().flush();
+
+    loop {
+        let mut input = String::new();
+        io::stdin().read_line(&mut input).unwrap();
+        let input = input.trim().to_string();
+
+        if options.contains(&&*input) {
+            return input;
+        } else {
+            print!("\n{}", prompt);
+            let _ = io::stdout().flush();
+        }
+    }
+}
+
 fn evaluate_bool_exp(expression: &String) -> Result<bool, String> {
     let tokens = tokenizer::tokenize(expression, false)?;
     let mut parser = ast::Parser::new(tokens, expression);
@@ -132,6 +154,22 @@ fn evaluate_truth_table(expression: &String) -> Result<Vec<EvaluatorPassResult>,
     let mut parser = ast::Parser::new(tokens, expression);
     let ast = parser.parse()?;
     let evaluator = evaluator::Evaluator::new(ast);
+    let ident_count = evaluator.get_identifiers().count();
+    if ident_count >= 18 {
+        match show_prompt(
+            format!(
+                "Performance Warning: Your about to calculate {} results! Continue? [y|n]:",
+                1 << ident_count
+            )
+            .as_str(),
+            &vec!["y", "n"],
+        )
+        .as_str()
+        {
+            "n" => return Err("Aborted".to_string()),
+            _ => {}
+        }
+    }
     let iter = evaluator.evaluate_iter().collect::<Vec<_>>();
     Ok(iter)
 }
@@ -151,11 +189,29 @@ fn evaluate_pass(expression: &String, pass: usize) -> Result<EvaluatorPassResult
     })
 }
 
-fn print_ast(expression: &String, mode: AstPrintMode) -> Result<(), String> {
+fn print_ast(expression: &String, mut mode: AstPrintMode) -> Result<(), String> {
     let tokens = tokenizer::tokenize(expression, true)?;
     let mut parser = ast::Parser::new(tokens, expression);
     let ast = parser.parse()?;
     let tree = ast::ast_to_tree(&ast);
+    let nodes = ast::count_nodes(&ast);
+    if (mode == AstPrintMode::Default || mode == AstPrintMode::Extended) && nodes > 10 {
+        match show_prompt(
+            "Performance warning: switch to more efficient pretty printer: [y|n]:",
+            &vec!["n", "y"],
+        )
+        .as_str()
+        {
+            "y" => {
+                if mode == AstPrintMode::Default {
+                    mode = AstPrintMode::Pretty
+                } else {
+                    mode = AstPrintMode::PrettyExtended
+                }
+            }
+            _ => {}
+        }
+    }
     match mode {
         AstPrintMode::Default => println!("{:#}", tree),
         AstPrintMode::Pretty => println!("{}", tree),

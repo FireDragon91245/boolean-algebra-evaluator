@@ -265,3 +265,13 @@ pub(crate) fn ast_to_tree(node: &Node) -> BinTree<Node> {
     }
     tree
 }
+
+pub(crate) fn count_nodes(node: &Node) -> usize {
+    match node {
+        Node::Const(_) => 1,
+        Node::Identifier(_) => 1,
+        Node::SingleOp { operand, .. } => 1 + count_nodes(operand),
+        Node::DoubleOp { left, right, .. } => 1 + count_nodes(left) + count_nodes(right),
+        Node::Group(g) => count_nodes(g),
+    }
+}
