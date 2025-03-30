@@ -63,7 +63,25 @@ enum Commands {
         about = "prints the truth table for the given boolean expression, identifiers are supported",
         short_flag = 'T'
     )]
-    Table { expression: String },
+    Table {
+        expression: String,
+        #[arg(
+            required = false,
+            default_value = "false",
+            long = "true",
+            short = 't',
+            help = "filter rows where the result is true"
+        )]
+        filter_true: bool,
+        #[arg(
+            required = false,
+            default_value = "false",
+            long = "false",
+            short = 'f',
+            help = "filter rows where the result is false"
+        )]
+        filter_false: bool,
+    },
     #[command(
         name = "-truth",
         about = "evaluates the given boolean expression with the given inputs, identifiers are supported",
@@ -160,39 +178,52 @@ fn main() {
                 return;
             }
         },
-        Commands::Table { expression } => match evaluate_truth_table(&expression) {
-            Ok(result) => {
-                let mut header: Vec<String> = result[0]
-                    .ident_states
-                    .iter()
-                    .sorted_by(|(a, _), (b, _)| a.cmp(b))
-                    .map(|(c, _)| c.to_string())
-                    .collect();
-                header.push(String::from("Result"));
-
-                let mut table_builder = Builder::new();
-                result.iter().for_each(|row| {
-                    table_builder.push_record(
-                        row.ident_states
-                            .iter()
-                            .sorted_by(|(a, _), (b, _)| a.cmp(b))
-                            .map(|(_, b)| b.to_string()),
-                    )
-                });
-
-                table_builder.insert_column(
-                    result[0].ident_states.iter().count(),
-                    result.iter().map(|row| row.result.to_string()),
-                );
-                table_builder.insert_record(0, header);
-
-                let mut table = table_builder.build();
-                table.with(Style::rounded());
-                println!("{}", table);
-            }
-            Err(e) => {
-                eprintln!("{}", e);
+        Commands::Table { expression, filter_false, filter_true } => {
+            if filter_true && filter_false {
+                eprintln!("Cannot filter for both true and false");
                 return;
+            }
+            let filter = if filter_true {
+                |result: &EvaluatorPassResult| result.result
+            } else if filter_false {
+                |result: &EvaluatorPassResult| !result.result
+            } else {
+                |_result: &EvaluatorPassResult| true
+            };
+            match evaluate_truth_table(&expression) {
+                Ok(result) => {
+                    let mut header: Vec<String> = result[0]
+                        .ident_states
+                        .iter()
+                        .sorted_by(|(a, _), (b, _)| a.cmp(b))
+                        .map(|(c, _)| c.to_string())
+                        .collect();
+                    header.push(String::from("Result"));
+
+                    let mut table_builder = Builder::new();
+                    result.iter().filter(|res: &&EvaluatorPassResult| filter(*res)).for_each(|row| {
+                        table_builder.push_record(
+                            row.ident_states
+                                .iter()
+                                .sorted_by(|(a, _), (b, _)| a.cmp(b))
+                                .map(|(_, b)| b.to_string()),
+                        )
+                    });
+
+                    table_builder.insert_column(
+                        result[0].ident_states.iter().count(),
+                        result.iter().map(|row| row.result.to_string()),
+                    );
+                    table_builder.insert_record(0, header);
+
+                    let mut table = table_builder.build();
+                    table.with(Style::rounded());
+                    println!("{}", table);
+                }
+                Err(e) => {
+                    eprintln!("{}", e);
+                    return;
+                }
             }
         },
         Commands::Truth { inputs, expression } => match parse_ident_states(&inputs) {
