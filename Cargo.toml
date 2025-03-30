@@ -6,3 +6,4 @@ edition = "2021"
 [dependencies]
 tabled = "0.18.0"
 clap = { version = "4.5.32", features = ["derive"] }
+rt-format = "0.3.1"

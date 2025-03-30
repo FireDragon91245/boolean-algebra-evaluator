@@ -6,6 +6,8 @@ use tabled::settings::Style;
 mod ast;
 mod evaluator;
 mod tokenizer;
+mod bin_tree;
+mod tree_print;
 
 #[derive(Parser, Debug)]
 #[clap(
@@ -29,29 +31,59 @@ struct Cli {
     command: Commands,
 }
 
+enum AstPrintMode {
+    Default,
+    Pretty,
+    Extended,
+    PrettyExtended
+}
+
+impl AstPrintMode {
+    fn from(pretty: bool, extended: bool) -> Self {
+        match (pretty, extended) {
+            (true, true) => AstPrintMode::PrettyExtended,
+            (true, false) => AstPrintMode::Pretty,
+            (false, true) => AstPrintMode::Extended,
+            (false, false) => AstPrintMode::Default
+        }
+    }
+}
+
 #[derive(Subcommand, Debug)]
 enum Commands {
     #[command(
         name = "-eval",
         about = "evaluates the given boolean expression, identifiers are not supported",
-        aliases = &["-e"]
+        short_flag = 'e'
     )]
     Eval { expression: String },
     #[command(
         name = "-Table",
         about = "prints the truth table for the given boolean expression, identifiers are supported",
-        aliases = &["-T"]
+        short_flag = 'T'
     )]
     Table { expression: String },
     #[command(
         name = "-truth",
         about = "evaluates the given boolean expression with the given inputs, identifiers are supported",
-        aliases = &["-t"]
+        short_flag = 't'
     )]
     Truth {
         #[arg(name = "identifier_values", required = true, num_args = 1..)]
         inputs: Vec<String>,
         expression: String,
+    },
+    #[command(
+        name = "-ast",
+        about = "Prints the AST of the given boolean expression",
+        short_flag = 'a'
+    )]
+    Ast {
+        expression: String,
+        #[arg(required = false, default_value = "false", long = "pretty", short = 'p', help = "enable pretty printing")]
+        pretty: bool,
+        #[arg(required = false, default_value = "false", long = "extended", short = 'e', help = "enable extended printing")]
+        extended: bool
     },
 }
 
@@ -86,6 +118,20 @@ fn evaluate_pass(expression: &String, pass: usize) -> Result<EvaluatorPassResult
             .map(|c| (c, evaluator.get_ident_bit(c, pass)))
             .collect(),
     })
+}
+
+fn print_ast(expression: &String, mode: AstPrintMode) -> Result<(), String> {
+    let tokens = tokenizer::tokenize(expression, true)?;
+    let mut parser = ast::Parser::new(tokens, expression);
+    let ast = parser.parse()?;
+    let tree = ast::ast_to_tree(&ast);
+    match mode {
+        AstPrintMode::Default => println!("{:#}", tree),
+        AstPrintMode::Pretty => println!("{}", tree),
+        AstPrintMode::Extended => println!("{:#.2}", tree),
+        AstPrintMode::PrettyExtended => println!("{:.2}", tree)
+    }
+    Ok(())
 }
 
 fn main() {
@@ -146,6 +192,13 @@ fn main() {
                 return;
             }
         },
+        Commands::Ast { expression, pretty, extended } => {
+            let mode = AstPrintMode::from(pretty, extended);
+            if let Err(e) = print_ast(&expression, mode) {
+                eprintln!("{}", e);
+                return;
+            }
+        }
     }
 }
 

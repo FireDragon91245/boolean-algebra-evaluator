@@ -1,5 +1,8 @@
+use crate::bin_tree::{BinTree, BinTreeNode};
 use crate::tokenizer::Token;
 use std::cmp::max;
+use std::fmt;
+use std::fmt::{Display, Formatter};
 
 macro_rules! invalid_char_error {
     ($self:expr) => {
@@ -28,6 +31,29 @@ pub(crate) enum Node {
         right: Box<Node>,
     },
     Group(Box<Node>),
+}
+
+impl Display for Node {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        if f.precision().is_none() {
+            match self {
+                Node::Const(a) => { write!(f, "{}", a) }
+                Node::Identifier(i) => { write!(f, "{}", i) }
+                Node::SingleOp { op, .. } => { write!(f, "{}", op) }
+                Node::DoubleOp { op, .. } => { write!(f, "{}", op) }
+                Node::Group(_) => { write!(f, "()") }
+            }
+        }
+        else {
+            match self {
+                Node::Const(a) => { write!(f, "{}", a) }
+                Node::Identifier(i) => { write!(f, "{}", i) }
+                Node::SingleOp { op, .. } => { write!(f, "{:.2}", op) }
+                Node::DoubleOp { op, .. } => { write!(f, "{:.2}", op) }
+                Node::Group(_) => { write!(f, "GRP") }
+            }
+        }
+    }
 }
 
 fn get_char_at_index(s: &String, i: usize) -> Option<char> {
@@ -200,4 +226,42 @@ impl Parser {
             invalid_char_error!(self)
         }
     }
+}
+
+fn ast_to_tree_loop(tree_node: &mut Option<Box<BinTreeNode<Node>>>, node: &Node) {
+    if tree_node.is_none() {
+        return;
+    }
+    let tree_node = tree_node.as_mut().unwrap();
+    tree_node.value = Some(node.clone());
+    tree_node.init_left();
+    tree_node.init_right();
+    match node {
+        Node::Const(_) => {}
+        Node::Identifier(_) => {}
+        Node::SingleOp { operand, .. } => ast_to_tree_loop(&mut tree_node.left, operand),
+        Node::DoubleOp { left, right, .. } => {
+            ast_to_tree_loop(&mut tree_node.left, left);
+            ast_to_tree_loop(&mut tree_node.right, right);
+        }
+        Node::Group(g) => ast_to_tree_loop(&mut tree_node.left, g),
+    }
+}
+
+pub(crate) fn ast_to_tree(node: &Node) -> BinTree<Node> {
+    let mut tree = BinTree::new();
+    tree.root.value = Some(node.clone());
+    tree.root.init_left();
+    tree.root.init_right();
+    match node {
+        Node::Const(_) => ast_to_tree_loop(&mut tree.root.left, node),
+        Node::Identifier(_) => ast_to_tree_loop(&mut tree.root.left, node),
+        Node::SingleOp { operand ,.. } => ast_to_tree_loop(&mut tree.root.left, operand),
+        Node::DoubleOp { left, right, .. } => {
+            ast_to_tree_loop(&mut tree.root.left, left);
+            ast_to_tree_loop(&mut tree.root.right, right);
+        }
+        Node::Group(_) => ast_to_tree_loop(&mut tree.root.left, node),
+    }
+    tree
 }

@@ -1,4 +1,5 @@
 use std::cmp::max;
+use std::fmt::{Display, Formatter};
 
 #[derive(Debug, PartialEq, Clone)]
 pub(crate) enum Token {
@@ -12,6 +13,78 @@ pub(crate) enum Token {
     ConstTrue,
     ConstFalse,
     Identifier(char),
+}
+
+impl Display for Token {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        if f.precision().is_none() {
+            match self {
+                Token::And => {
+                    write!(f, "&")
+                }
+                Token::Or => {
+                    write!(f, "|")
+                }
+                Token::Not => {
+                    write!(f, "!")
+                }
+                Token::Xor => {
+                    write!(f, "^")
+                }
+                Token::Equal => {
+                    write!(f, "=")
+                }
+                Token::GroupOpen => {
+                    write!(f, "(")
+                }
+                Token::GroupClose => {
+                    write!(f, ")")
+                }
+                Token::ConstTrue => {
+                    write!(f, "true")
+                }
+                Token::ConstFalse => {
+                    write!(f, "false")
+                }
+                Token::Identifier(i) => {
+                    write!(f, "{}", i)
+                }
+            }
+        } else {
+            match self {
+                Token::And => {
+                    write!(f, "AND")
+                }
+                Token::Or => {
+                    write!(f, "OR")
+                }
+                Token::Not => {
+                    write!(f, "NOT")
+                }
+                Token::Xor => {
+                    write!(f, "XOR")
+                }
+                Token::Equal => {
+                    write!(f, "EQ")
+                }
+                Token::GroupOpen => {
+                    write!(f, "(")
+                }
+                Token::GroupClose => {
+                    write!(f, ")")
+                }
+                Token::ConstTrue => {
+                    write!(f, "true")
+                }
+                Token::ConstFalse => {
+                    write!(f, "false")
+                }
+                Token::Identifier(i) => {
+                    write!(f, "{}", i)
+                }
+            }
+        }
+    }
 }
 
 const VALID_IDENTIFIERS: &str = "abcdefghijklmnopqrstuvwxyz";
