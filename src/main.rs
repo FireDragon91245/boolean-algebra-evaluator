@@ -1,12 +1,13 @@
 use crate::evaluator::EvaluatorPassResult;
 use clap::{Parser, Subcommand};
+use itertools::Itertools;
 use tabled::builder::Builder;
 use tabled::settings::Style;
 
 mod ast;
+mod bin_tree;
 mod evaluator;
 mod tokenizer;
-mod bin_tree;
 mod tree_print;
 
 #[derive(Parser, Debug)]
@@ -35,7 +36,7 @@ enum AstPrintMode {
     Default,
     Pretty,
     Extended,
-    PrettyExtended
+    PrettyExtended,
 }
 
 impl AstPrintMode {
@@ -44,7 +45,7 @@ impl AstPrintMode {
             (true, true) => AstPrintMode::PrettyExtended,
             (true, false) => AstPrintMode::Pretty,
             (false, true) => AstPrintMode::Extended,
-            (false, false) => AstPrintMode::Default
+            (false, false) => AstPrintMode::Default,
         }
     }
 }
@@ -80,10 +81,22 @@ enum Commands {
     )]
     Ast {
         expression: String,
-        #[arg(required = false, default_value = "false", long = "pretty", short = 'p', help = "enable pretty printing")]
+        #[arg(
+            required = false,
+            default_value = "false",
+            long = "pretty",
+            short = 'p',
+            help = "enable pretty printing"
+        )]
         pretty: bool,
-        #[arg(required = false, default_value = "false", long = "extended", short = 'e', help = "enable extended printing")]
-        extended: bool
+        #[arg(
+            required = false,
+            default_value = "false",
+            long = "extended",
+            short = 'e',
+            help = "enable extended printing"
+        )]
+        extended: bool,
     },
 }
 
@@ -129,7 +142,7 @@ fn print_ast(expression: &String, mode: AstPrintMode) -> Result<(), String> {
         AstPrintMode::Default => println!("{:#}", tree),
         AstPrintMode::Pretty => println!("{}", tree),
         AstPrintMode::Extended => println!("{:#.2}", tree),
-        AstPrintMode::PrettyExtended => println!("{:.2}", tree)
+        AstPrintMode::PrettyExtended => println!("{:.2}", tree),
     }
     Ok(())
 }
@@ -152,13 +165,19 @@ fn main() {
                 let mut header: Vec<String> = result[0]
                     .ident_states
                     .iter()
+                    .sorted_by(|(a, _), (b, _)| a.cmp(b))
                     .map(|(c, _)| c.to_string())
                     .collect();
                 header.push(String::from("Result"));
 
                 let mut table_builder = Builder::new();
                 result.iter().for_each(|row| {
-                    table_builder.push_record(row.ident_states.iter().map(|(_, b)| b.to_string()))
+                    table_builder.push_record(
+                        row.ident_states
+                            .iter()
+                            .sorted_by(|(a, _), (b, _)| a.cmp(b))
+                            .map(|(_, b)| b.to_string()),
+                    )
                 });
 
                 table_builder.insert_column(
@@ -192,7 +211,11 @@ fn main() {
                 return;
             }
         },
-        Commands::Ast { expression, pretty, extended } => {
+        Commands::Ast {
+            expression,
+            pretty,
+            extended,
+        } => {
             let mode = AstPrintMode::from(pretty, extended);
             if let Err(e) = print_ast(&expression, mode) {
                 eprintln!("{}", e);

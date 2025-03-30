@@ -47,7 +47,9 @@ impl Evaluator {
                     to_visit.push_back(g);
                 }
                 Node::Identifier(c) => {
-                    idents.push(*c);
+                    if !idents.contains(&c) {
+                        idents.push(*c);
+                    }
                 }
             }
         }
