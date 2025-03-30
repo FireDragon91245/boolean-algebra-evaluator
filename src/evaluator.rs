@@ -97,6 +97,7 @@ impl Evaluator {
                 Token::And => self.evaluate_node(left, pass) && self.evaluate_node(right, pass),
                 Token::Or => self.evaluate_node(left, pass) || self.evaluate_node(right, pass),
                 Token::Xor => self.evaluate_node(left, pass) ^ self.evaluate_node(right, pass),
+                Token::Equal => self.evaluate_node(left, pass) == self.evaluate_node(right, pass),
                 _ => {
                     panic!("Invalid operator, please report the expression that caused this error")
                 }

@@ -12,6 +12,7 @@ mod bin_tree;
 mod evaluator;
 mod tokenizer;
 mod tree_print;
+mod tests;
 
 #[derive(Parser, Debug)]
 #[clap(

@@ -17,7 +17,7 @@ macro_rules! invalid_char_error {
     };
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub(crate) enum Node {
     Const(bool),
     Identifier(char),
