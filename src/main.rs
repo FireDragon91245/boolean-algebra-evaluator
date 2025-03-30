@@ -178,7 +178,11 @@ fn main() {
                 return;
             }
         },
-        Commands::Table { expression, filter_false, filter_true } => {
+        Commands::Table {
+            expression,
+            filter_false,
+            filter_true,
+        } => {
             if filter_true && filter_false {
                 eprintln!("Cannot filter for both true and false");
                 return;
@@ -201,18 +205,24 @@ fn main() {
                     header.push(String::from("Result"));
 
                     let mut table_builder = Builder::new();
-                    result.iter().filter(|res: &&EvaluatorPassResult| filter(*res)).for_each(|row| {
-                        table_builder.push_record(
-                            row.ident_states
-                                .iter()
-                                .sorted_by(|(a, _), (b, _)| a.cmp(b))
-                                .map(|(_, b)| b.to_string()),
-                        )
-                    });
+                    result
+                        .iter()
+                        .filter(|res: &&EvaluatorPassResult| filter(*res))
+                        .for_each(|row| {
+                            table_builder.push_record(
+                                row.ident_states
+                                    .iter()
+                                    .sorted_by(|(a, _), (b, _)| a.cmp(b))
+                                    .map(|(_, b)| b.to_string()),
+                            )
+                        });
 
                     table_builder.insert_column(
                         result[0].ident_states.iter().count(),
-                        result.iter().map(|row| row.result.to_string()),
+                        result
+                            .iter()
+                            .filter(|res: &&EvaluatorPassResult| filter(*res))
+                            .map(|row| row.result.to_string()),
                     );
                     table_builder.insert_record(0, header);
 
@@ -225,7 +235,7 @@ fn main() {
                     return;
                 }
             }
-        },
+        }
         Commands::Truth { inputs, expression } => match parse_ident_states(&inputs) {
             Ok(pass) => match evaluate_pass(&expression, pass) {
                 Ok(result) => {
