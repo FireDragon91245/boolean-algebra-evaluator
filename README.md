@@ -77,3 +77,54 @@ true
 true
 # ...args = boolean string each mapping to 1 bit (a = 1, b = 1, c = 1) = true true true or 1 1 1
 ```
+#### booleval -a [expression] {-p, -e}
+> Prints the ast for the boolean expression, identifiers are allowed
+```bash
+# Default
+> booleval -a "a|b"
+    |
+   / \
+  /   \
+ /     \
+a       b
+
+# Pretty
+> booleval -a "a|b" -p
+ |
+┌┴┐
+a b
+
+# Extended
+> booleval -a "a|b" -e
+   OR
+   / \
+  /   \
+ /     \
+a       b
+
+# Extended & Pretty
+> booleval -a "a|b" -ep
+OR
+┌┴┐
+a b
+```
+> More Complex example: 2-4 Muliplexer `"(!a & !b & c) | (!a & b & d) | (a & !b & e) | (a & b & f)"`
+> where a & b are the selector bits and c, d, e and f are the value bits
+```bash
+> booleval -a "(!a & !b & c) | (!a & b & d) | (a & !b & e) | (a & b & f)" -pe
+                    OR
+               ┌─────┴──────┐
+              OR           GRP
+         ┌─────┴─────┐      │
+        OR          GRP    AND
+     ┌───┴────┐      │     ┌┴─┐
+    GRP      GRP    AND   AND f
+     │        │    ┌─┴──┐ ┌┴┐
+    AND      AND  AND   e a b
+  ┌──┴──┐   ┌─┴─┐ ┌┴┐
+ AND    c  AND  d a NOT
+┌─┴─┐     ┌─┴─┐     │
+NOT NOT   NOT b     b
+│   │     │
+a   b     a
+```
